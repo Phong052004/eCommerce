@@ -1,0 +1,16 @@
+package com.example.eCommerceApp1.dto.cart;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+public class ChangeProductInput {
+    private Long cartId;
+    private Long productId;
+    private Integer orderQuantity;
+}
