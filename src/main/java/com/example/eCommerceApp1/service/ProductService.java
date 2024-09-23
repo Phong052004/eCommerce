@@ -2,15 +2,15 @@ package com.example.eCommerceApp1.service;
 
 import com.example.eCommerceApp1.common.Common;
 import com.example.eCommerceApp1.dto.product.*;
+import com.example.eCommerceApp1.enitty.CommentEntity;
+import com.example.eCommerceApp1.enitty.ProductOrderMapEntity;
 import com.example.eCommerceApp1.enitty.UserEntity;
 import com.example.eCommerceApp1.enitty.VoucherEntity;
 import com.example.eCommerceApp1.enitty.product.*;
 import com.example.eCommerceApp1.helper.StringUtils;
 import com.example.eCommerceApp1.mapper.product.ProductMapper;
 import com.example.eCommerceApp1.mapper.product.ProductTemplateMapper;
-import com.example.eCommerceApp1.repository.CustomRepository;
-import com.example.eCommerceApp1.repository.UserRepository;
-import com.example.eCommerceApp1.repository.VoucherRepository;
+import com.example.eCommerceApp1.repository.*;
 import com.example.eCommerceApp1.repository.product.*;
 import com.example.eCommerceApp1.token.TokenHelper;
 import lombok.AllArgsConstructor;
@@ -37,6 +37,8 @@ public class ProductService {
     private final UserRepository userRepository;
     private final TemplateAttributeMapRepository templateAttributeMapRepository;
     private final VoucherRepository voucherRepository;
+    private final CommentRepository commentRepository;
+    private final ProductOrderMapRepository productOrderMapRepository;
 
     @Transactional
     public void createProductTemplate(String accessToken,
@@ -514,6 +516,7 @@ public class ProductService {
         productRepository.deleteAllByProductTemplateId(productTemplateId);
         productAttributeValueMapRepository.deleteAllByProductTemplateId(productTemplateId);
         templateAttributeMapRepository.deleteAllByProductTemplateId(productTemplateId);
+        commentRepository.deleteAllByProductTemplateId(productTemplateId);
     }
 
     @Transactional
@@ -609,9 +612,19 @@ public class ProductService {
         Map<Long, VoucherEntity> voucherEntityMap = voucherRepository.findAllByProductTemplateIdIn(productTemplateIds)
                 .stream().collect(Collectors.toMap(VoucherEntity::getProductTemplateId, Function.identity()));
 
+        Map<Long, List<CommentEntity>> commentEntityMap = commentRepository.findAllByProductTemplateIdIn(productTemplateIds)
+                .stream().collect(Collectors.groupingBy(CommentEntity::getProductTemplateId));
+
+        Map<Long, List<ProductOrderMapEntity>> productOrderMap = productOrderMapRepository
+                .findAllByProductTemplateIdIn(productTemplateIds)
+                .stream().collect(Collectors.groupingBy(ProductOrderMapEntity::getProductTemplateId));
+
+
         return productTemplateEntities.map(
                 productTemplateEntity -> {
                     VoucherEntity voucherEntity = voucherEntityMap.get(productTemplateEntity.getId());
+                    List<CommentEntity> commentEntities = commentEntityMap.get(productTemplateEntity.getId());
+                    List<ProductOrderMapEntity> productOrderMapEntities = productOrderMap.get(productTemplateEntity.getId());
                     ProductsTemplateOutput productsTemplateOutput = ProductsTemplateOutput.builder()
                             .productTemplateId(productTemplateEntity.getId())
                             .name(productTemplateEntity.getName())
@@ -620,8 +633,6 @@ public class ProductService {
                             .description(productTemplateEntity.getDescription())
                             .quantity(productTemplateEntity.getQuantity())
                             .avatarImage(productTemplateEntity.getAvatarImage())
-                            .soldCount(productTemplateEntity.getSold())
-                            .averageRate(productTemplateEntity.getAverageRating())
                             .build();
 
                     if(Objects.nonNull(voucherEntity)) {
@@ -632,8 +643,21 @@ public class ProductService {
                                 )
                         );
                         productsTemplateOutput.setSaleOff(voucherEntity.getSaleOff());
-
                     }
+
+                    int rating = 0;
+                    for (CommentEntity commentEntity : commentEntities) {
+                        rating += commentEntity.getRating();
+                    }
+                    productsTemplateOutput.setAverageRate(
+                            (double) Math.round(rating/commentEntities.size() * 10) / 10
+                    );
+
+                    int soldCount = 0;
+                    for (ProductOrderMapEntity productOrderMapEntity : productOrderMapEntities) {
+                        soldCount += productOrderMapEntity.getQuantityOrder();
+                    }
+                    productsTemplateOutput.setSoldCount(soldCount);
                     return productsTemplateOutput;
                 }
         );

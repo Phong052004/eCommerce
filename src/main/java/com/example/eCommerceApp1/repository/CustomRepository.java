@@ -20,6 +20,7 @@ public class CustomRepository {
     private final ProductCartMapRepository productCartMapRepository;
     private final UserOrderRepository userOrderRepository;
     private final ChatRepository chatRepository;
+    private final CommentRepository commentRepository;
 
     public UserEntity getUserBy(Long userId) {
         return userRepository.findById(userId).orElseThrow(
@@ -77,6 +78,12 @@ public class CustomRepository {
 
     public ChatEntity getChatEntityBy(Long chatId) {
         return chatRepository.findById(chatId).orElseThrow(
+                () -> new RuntimeException(Common.ACTION_FAIL)
+        );
+    }
+
+    public CommentEntity getCommentEntityBy(Long commentId) {
+        return commentRepository.findById(commentId).orElseThrow(
                 () -> new RuntimeException(Common.ACTION_FAIL)
         );
     }

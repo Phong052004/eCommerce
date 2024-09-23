@@ -11,4 +11,6 @@ public interface ProductOrderMapRepository extends JpaRepository<ProductOrderMap
     List<ProductOrderMapEntity> findAllByOrderIdIn(List<Long> orderIds);
 
     List<ProductOrderMapEntity> findAllByOrderId(Long orderId);
+
+    List<ProductOrderMapEntity> findAllByProductTemplateIdIn(List<Long> productTemplateIds);
 }
