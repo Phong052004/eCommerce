@@ -427,13 +427,19 @@ public class ProductService {
     public List<ProductOutput> getProducts(Long productTemplateId) {
         List<ProductEntity> productEntities = productRepository.findAllByProductTemplateId(productTemplateId);
         VoucherEntity voucherEntity = voucherRepository.findByProductTemplateId(productTemplateId);
+        Map<Long, List<ProductOrderMapEntity>> productOrderMap = productOrderMapRepository
+                .findAllByProductIdIn(
+                        productEntities.stream().map(ProductEntity::getId).collect(Collectors.toList())
+                ).stream().collect(Collectors.groupingBy(ProductOrderMapEntity::getProductId));
         List<ProductOutput> productOutPuts = new ArrayList<>();
         for(ProductEntity productEntity : productEntities) {
+            int soldCount = productOrderMap.get(productEntity.getId())
+                    .stream().mapToInt(ProductOrderMapEntity::getQuantityOrder).sum();
             ProductOutput productOutPut = ProductOutput.builder()
                     .productId(productEntity.getId())
                     .name(productEntity.getName())
                     .price(productEntity.getPrice())
-                    .quantity(productEntity.getQuantity())
+                    .quantity(productEntity.getQuantity() - soldCount)
                     .imageUrl(productEntity.getImageUrl())
                     .discountedPrice(
                             (voucherEntity != null) ?
@@ -631,7 +637,6 @@ public class ProductService {
                             .minPrice(productTemplateEntity.getMinPrice())
                             .maxPrice(productTemplateEntity.getMaxPrice())
                             .description(productTemplateEntity.getDescription())
-                            .quantity(productTemplateEntity.getQuantity())
                             .avatarImage(productTemplateEntity.getAvatarImage())
                             .build();
 
@@ -645,19 +650,15 @@ public class ProductService {
                         productsTemplateOutput.setSaleOff(voucherEntity.getSaleOff());
                     }
 
-                    int rating = 0;
-                    for (CommentEntity commentEntity : commentEntities) {
-                        rating += commentEntity.getRating();
-                    }
+                    int rating = commentEntities.stream().mapToInt(CommentEntity::getRating).sum();
                     productsTemplateOutput.setAverageRate(
                             (double) Math.round(rating/commentEntities.size() * 10) / 10
                     );
 
-                    int soldCount = 0;
-                    for (ProductOrderMapEntity productOrderMapEntity : productOrderMapEntities) {
-                        soldCount += productOrderMapEntity.getQuantityOrder();
-                    }
+                    int soldCount = productOrderMapEntities
+                            .stream().mapToInt(ProductOrderMapEntity::getQuantityOrder).sum();
                     productsTemplateOutput.setSoldCount(soldCount);
+                    productsTemplateOutput.setQuantity(productTemplateEntity.getQuantity() - soldCount);
                     return productsTemplateOutput;
                 }
         );

@@ -101,9 +101,7 @@ public class OrderService {
                         .build();
 
                 productOrderMapRepository.save(productOrderMapEntity);
-                productEntity.setQuantity(productEntity.getQuantity() - productOrderInput.getQuantityOrder());
                 productRepository.save(productEntity);
-                productTemplateEntity.setQuantity(productTemplateEntity.getQuantity() - productOrderInput.getQuantityOrder());
                 productTemplateRepository.save(productTemplateEntity);
 
                 shoppingCartIds.add(productOrderInput.getShoppingCartId());
